@@ -98,4 +98,4 @@ Y
 \forall
 \in
 \prime
-\backslash
+|
