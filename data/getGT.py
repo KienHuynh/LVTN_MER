@@ -37,6 +37,7 @@ def buildVocab(path):
 
 def replaceW2ID(data, word_to_id):
     print('data', data)
+    print('{',word_to_id['{'])
 #    data = readSymbolfile(path)
     return [word_to_id[word] for word in data if word in word_to_id]
 
@@ -51,7 +52,7 @@ def touchGT(path):
     
     for child in root:
         tag = child.tag[tag_header_len:]
-#        print(tag)
+        print(tag)
         if tag == 'annotation' and child.attrib['type'] == 'truth':
             text = child.text
             print(text)
@@ -67,6 +68,7 @@ def getRoot(path):
     root = r.parse(path).getroot()
     return root
 
+
 def modifiedText(text):
     standard = ['phi','pi','theta','alpha','beta','gamma','infty','sigma','Delta',
                 'lamda','mu','pm','sin','cos','neq','leq','gt','sqrt','div','times',
@@ -77,19 +79,16 @@ def modifiedText(text):
     else:
         standtext = text
     return standtext
-def processBrac(elem, length, is_fisrt):
-    parent = elem.getparent()
-    parent_tag = parent.tag[length:]
-    if parent_tag == 'mfrac':
-        if is_first:
-            text = '{'
-        else:
-            text = '}'
-    return text
-            
-def parseGT(root, text, ignoreElems, length):
-    
-    if root.tag[length:] in ignoreElems:
+
+
+def getIndex(root):
+    index = root.tag.index('}') + 1
+    return index
+
+        
+def parseGT(root, text, ignoreElems):
+    index = getIndex(root)
+    if root.tag[index:] in ignoreElems:
         return
     if len(root) == 0:
         
@@ -99,72 +98,74 @@ def parseGT(root, text, ignoreElems, length):
         return
     else:
 #        print(root.tag[length+6:])
-        if root.tag[length+6:] == 'msqrt':
+#        print('tttag',root.tag)
+        if root.tag[index:] == 'msqrt':
+            
             text.append('\\sqrt')
             text.append('{')
             for child in root:
-                parseGT(child, text, ignoreElems, length)
+                parseGT(child, text, ignoreElems)
             text.append('}')
-        elif root.tag[length+6:] == 'mfrac':
+        elif root.tag[index:] == 'mfrac':
             text.append('\\frac')
             for child in root:
                 text.append('{')
-                parseGT(child, text, ignoreElems, length)
+                parseGT(child, text, ignoreElems)
                 text.append('}')  
-        elif root.tag[length+6:] == 'msub':
+        elif root.tag[index:] == 'msub':
             n = 1
             for child in root:
                 if n == 2:
                     text.append('_')
-                    if child.tag[length+6:] == 'mrow':
+                    if child.tag[index:] == 'mrow':
                         text.append('{')
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                         text.append('}')
                     else:
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                 else:
-                    parseGT(child, text, ignoreElems, length)
+                    parseGT(child, text, ignoreElems)
                 n = n + 1
-        elif root.tag[length+6:] == 'msup':
+        elif root.tag[index:] == 'msup':
             n = 1
             for child in root:
                 if n == 2:
                     text.append('^')
-                    if child.tag[length+6:] == 'mrow':
+                    if child.tag[index:] == 'mrow':
                         text.append('{')
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                         text.append('}')
                     else:
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                 else:
-                    parseGT(child, text, ignoreElems, length)
+                    parseGT(child, text, ignoreElems)
                 n = n + 1
-        elif root.tag[length+6:] == 'msubsup':
+        elif root.tag[index:] == 'msubsup':
             n = 1
             for child in root:
                 if n == 2:
                     text.append('_')
-                    if child.tag[length+6:] == 'mrow':
+                    if child.tag[index:] == 'mrow':
                         text.append('{')
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                         text.append('}')
                     else:
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                 elif n == 3:
                     text.append('^')
-                    if child.tag[length+6:] == 'mrow':
+                    if child.tag[index:] == 'mrow':
                         text.append('{')
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                         text.append('}')
                     else:
-                        parseGT(child, text, ignoreElems, length)
+                        parseGT(child, text, ignoreElems)
                 else:
-                    parseGT(child, text, ignoreElems, length)
+                    parseGT(child, text, ignoreElems)
                 n = n + 1
                     
         else:
             for child in root:
-                parseGT(child, text, ignoreElems, length)
+                parseGT(child, text, ignoreElems)
            
 def makeOneshotGT(path_to_ink, path_to_symbol):
     word_to_id, id_to_word = buildVocab(path_to_symbol)
@@ -173,10 +174,9 @@ def makeOneshotGT(path_to_ink, path_to_symbol):
 #    data = ['\\forall', 'g', '\\in', 'G'] 
     print(touchGT(path_to_ink))
     root = getRoot(path_to_ink)
-    length = len(root.tag) -3
     ignoreElems = ['traceFormat','annotation','trace','traceGroup']
     text = []
-    parseGT(root, text, ignoreElems, length)
+    parseGT(root, text, ignoreElems)
     print ('gt', text)
     vector = replaceW2ID(text, word_to_id)
     print('vector', vector)
@@ -220,9 +220,10 @@ def makeOneshotGT(path_to_ink, path_to_symbol):
    
 #makeOneshotGT('./101_alfonso.inkml', './mathsymbolclass.txt')
 #makeOneshotGT('./8_em_65.inkml', './mathsymbolclass.txt')
-#makeOneshotGT('formulaire004-equation024.inkml','./mathsymbolclass.txt')
+makeOneshotGT('formulaire004-equation024.inkml','./mathsymbolclass.txt')
 #makeOneshotGT('./KME1G3_0_sub_21.inkml', './mathsymbolclass.txt')
-makeOneshotGT('./200922-947-1.inkml', './mathsymbolclass.txt')
+#makeOneshotGT('./200922-947-1.inkml', './mathsymbolclass.txt')
 #buildVocab('./mathsymbolclass.txt')
 #makeOneshotGT('./MfrDB0041.inkml', './mathsymbolclass.txt')
+#touchGT('./MfrDB0041.inkml')
 #getMathtag('./65_alfonso.inkml')
