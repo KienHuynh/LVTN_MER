@@ -6,6 +6,9 @@ Created on Thu Aug  3 21:30:37 2017
 @author: ngocbui
 """
 
+import sys
+sys.path.insert(0, './../Network')
+
 import numpy as np
 import xml.etree.ElementTree as r
 import torch
@@ -13,6 +16,7 @@ from torch.autograd import Variable
 import os
 import re
 import collections
+import NetWorkConfig
 
 def readSymbolfile(path):
     assert(os.path.exists(path))
@@ -36,8 +40,8 @@ def buildVocab(path):
     return word_to_id, id_to_word
 
 def replaceW2ID(data, word_to_id):
-    print('data', data)
-    print('{',word_to_id['{'])
+    #print('data', data)
+    #print('{',word_to_id['{'])
 #    data = readSymbolfile(path)
     return [word_to_id[word] for word in data if word in word_to_id]
 
@@ -85,7 +89,31 @@ def getIndex(root):
     index = root.tag.index('}') + 1
     return index
 
-        
+    
+def ParseGTFromfile(root, text, ignoreElems):
+    text.append('$B')
+    parseGT(root, text, ignoreElems)
+    text.append('$E')
+
+    need_to_pad = NetWorkConfig.MAX_TOKEN_LEN - len(text)
+    if need_to_pad < 0:
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('WARNING WARNING WARNING WARNING')
+        print ('Ground truth size exceed MAX_TOKEN_LEN')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        print ('-------------------------------------------------------------------------------')
+        quit()
+
+    for i in range(need_to_pad):
+        text.append('$P')
+
 def parseGT(root, text, ignoreElems):
     index = getIndex(root)
     if root.tag[index:] in ignoreElems:
@@ -172,17 +200,38 @@ def makeOneshotGT(path_to_ink, path_to_symbol):
 #    chuan hoa text de tach ra duoc tung symbol va luu thanh mang trong data
 #    TODO
 #    data = ['\\forall', 'g', '\\in', 'G'] 
-    print(touchGT(path_to_ink))
+    #print(touchGT(path_to_ink))
     root = getRoot(path_to_ink)
     ignoreElems = ['traceFormat','annotation','trace','traceGroup']
     text = []
-    parseGT(root, text, ignoreElems)
-    print ('gt', text)
+    
+    #--------- PTP Fix : Add Start/ End and padding token
+    ##################################
+    #parseGT(root, text, ignoreElems)#
+    ##################################
+    ParseGTFromfile(root, text, ignoreElems)
+
+
+    #print ('gt', text)
+    
     vector = replaceW2ID(text, word_to_id)
-    print('vector', vector)
+    #print('vector', vector)
+    
+    print (vector)
+
+
     tensor = torch.LongTensor(vector)
-    print('vector',Variable(tensor))
+    #print('vector',Variable(tensor))
     return Variable(tensor)
+
+def makeGTVector(path_to_ink, path_to_symbol):
+    word_to_id, id_to_word = buildVocab(path_to_symbol)
+    root = getRoot(path_to_ink)
+    ignoreElems = ['traceFormat','annotation','trace','traceGroup']
+    text = []
+    ParseGTFromfile(root, text, ignoreElems)
+    vector = replaceW2ID(text, word_to_id)
+    return vector
 
 ##   tach symbol             
 #def oneshotGT(path_to_ink, path_to_symbol):
@@ -220,7 +269,11 @@ def makeOneshotGT(path_to_ink, path_to_symbol):
    
 #makeOneshotGT('./101_alfonso.inkml', './mathsymbolclass.txt')
 #makeOneshotGT('./8_em_65.inkml', './mathsymbolclass.txt')
-makeOneshotGT('formulaire004-equation024.inkml','./mathsymbolclass.txt')
+
+
+#makeOneshotGT('./../data/CROHME/test/formulaire038-equation013.inkml','./mathsymbolclass.txt')
+
+
 #makeOneshotGT('./KME1G3_0_sub_21.inkml', './mathsymbolclass.txt')
 #makeOneshotGT('./200922-947-1.inkml', './mathsymbolclass.txt')
 #buildVocab('./mathsymbolclass.txt')
