@@ -12,7 +12,7 @@
 <annotationXML type="truth" encoding="Content-MathML">
 	<math xmlns='http://www.w3.org/1998/Math/MathML'>
 		<mi xml:id="c_1">c</mi>
-		<mo xml:id="\cdot_1">·</mo>
+		<mo xml:id="\cdot_1">\ctdot</mo>
 		<msup>
 			<mrow>
 				<mrow>
@@ -36,7 +36,7 @@
 		</msup>
 		<mo xml:id="+_1">+</mo>
 		<mi xml:id="b_1">b</mi>
-		<mo xml:id="\cdot_2">·</mo>
+		<mo xml:id="\cdot_2">\ctdot</mo>
 		<mrow>
 			<mo xml:id="(_2">(</mo>
 			<mrow>
